@@ -1,17 +1,12 @@
-# EC2 + Docker + Nginx Setup Notes
-
-Notes for launching an EC2 instance, installing Docker & Nginx, and practicing basic DevOps tasks (logs, sed, Docker-based Nginx).
-
----
 
 ## Part 1: Launch EC2 Instance
 
 | Setting        | Value                          |
-|----------------|---------------------------------|
+|----------------|--------------------------------|
 | AMI            | Ubuntu 22.04                   |
 | Instance type  | t2.micro (Free Tier)           |
 | Key pair       | Create/download a new `.pem`   |
-| Security Group | SSH (22), HTTP (80)             |
+| Security Group | SSH (22), HTTP (80)            |
 
 ### Security Group Rules
 
