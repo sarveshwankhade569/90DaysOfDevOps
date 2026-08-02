@@ -136,5 +136,3 @@ http://<your-ip>:8080
 
 ---
 
-## Author
-**Sarvesh** — DevOps practice notes
