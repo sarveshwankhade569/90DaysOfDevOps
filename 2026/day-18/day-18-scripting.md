@@ -1,13 +1,18 @@
-Bash Functions & Scripting Practice Notes
+# Bash Functions & Scripting Practice Notes
 
-Five hands-on tasks covering functions, local vs global variables, strict error handling (set -euo pipefail), and a real system-info reporting script.
+Five hands-on tasks covering functions, local vs global variables, strict error handling (`set -euo pipefail`), and a real system-info reporting script.
 
-Task 1 — Basic Functions
-bash
+---
+
+## Task 1 — Basic Functions
+
+```bash
 touch functions.sh      # create file
 chmod +x functions.sh   # give execute permission
 vim functions.sh        # edit file
-bash
+```
+
+```bash
 #!/bin/bash
 
 greet() {
@@ -24,20 +29,26 @@ add() {
 
 greet "Sarvesh"
 add 10 20
+```
 
-Run:
-
-bash
+**Run:**
+```bash
 bash functions.sh
+```
 
-Concept: Functions are defined with name() { ... } and called just like commands. Arguments passed to a function are read the same way as script arguments — $1, $2, etc. — but scoped to that function call.
+**Concept:** Functions are defined with `name() { ... }` and called just like commands. Arguments passed to a function are read the same way as script arguments — `$1`, `$2`, etc. — but scoped to that function call.
 
-Task 2 — Disk and Memory Functions
-bash
+---
+
+## Task 2 — Disk and Memory Functions
+
+```bash
 touch disk_check.sh      # create file
 chmod 744 disk_check.sh  # give permission
 vim disk_check.sh        # edit file
-bash
+```
+
+```bash
 #!/bin/bash
 
 check_disk() {
@@ -68,47 +79,60 @@ else
 fi
 
 main
+```
 
-Concept: check_service doesn't print anything — it just runs systemctl is-active --quiet nginx and forwards its exit code (0 = running, non-zero = not running) with return $?. That exit code is what the if check_service; then line actually tests, since if checks a command's exit status, not its output.
+**Concept:** `check_service` doesn't print anything — it just runs `systemctl is-active --quiet nginx` and forwards its exit code (`0` = running, non-zero = not running) with `return $?`. That exit code is what the `if check_service; then` line actually tests, since `if` checks a command's exit status, not its output.
 
-Task 3 — set -euo pipefail
-bash
+---
+
+## Task 3 — `set -euo pipefail`
+
+```bash
 touch strict_demo.sh      # create file
 chmod +x strict_demo.sh   # give execute permission
 vim strict_demo.sh        # edit file
-bash
+```
+
+```bash
 #!/bin/bash
 set -e
 echo "Before"
 ls /directory-that-does-not-exist
 echo "After"
+```
 
-Run:
-
-bash
+**Run:**
+```bash
 bash strict_demo.sh
+```
 
-Because of set -e, the script stops as soon as the ls command fails — "After" never prints.
+Because of `set -e`, the script stops as soon as the `ls` command fails — `"After"` never prints.
 
-The three strict-mode flags
-Flag	Effect
--e	Stop the script immediately if any command fails (non-zero exit code)
--u	Treat any unset/undefined variable as an error and stop
--o pipefail	Catch failures inside a pipeline — normally only the last command's exit code counts, this makes any failing stage fail the whole pipeline
+### The three strict-mode flags
+
+| Flag | Effect |
+|------|--------|
+| `-e` | Stop the script immediately if any command fails (non-zero exit code) |
+| `-u` | Treat any unset/undefined variable as an error and stop |
+| `-o pipefail` | Catch failures **inside** a pipeline — normally only the last command's exit code counts, this makes any failing stage fail the whole pipeline |
 
 Combined:
-
-bash
+```bash
 set -euo pipefail
-
+```
 This is the standard "strict mode" header for production-grade Bash scripts — it stops silent failures from being ignored.
 
-Task 4 — Local vs Global Variables
-bash
+---
+
+## Task 4 — Local vs Global Variables
+
+```bash
 touch local_demo.sh       # create file
 chmod +x local_demo.sh    # give execute permission
 vim local_demo.sh         # edit file
-bash
+```
+
+```bash
 #!/bin/bash
 
 show_local() {
@@ -126,20 +150,25 @@ echo "Outside local function: ${message:-message is not defined}"
 
 show_global
 echo "Outside global function: $message"
+```
 
-Concept:
+**Concept:**
+- `local message="..."` inside `show_local` only exists **within that function** — once the function returns, `$message` is undefined outside it. `${message:-message is not defined}` prints the fallback text since the variable isn't set.
+- `show_global` sets `message` **without** `local`, which makes it a global variable — so it's still accessible after the function returns, and the last `echo` prints `"I am global"`.
 
-local message="..." inside show_local only exists within that function — once the function returns, $message is undefined outside it. ${message:-message is not defined} prints the fallback text since the variable isn't set.
-show_global sets message without local, which makes it a global variable — so it's still accessible after the function returns, and the last echo prints "I am global".
+**Takeaway:** always use `local` inside functions unless you deliberately want to leak a variable into the global scope.
 
-Takeaway: always use local inside functions unless you deliberately want to leak a variable into the global scope.
+---
 
-Task 5 — System Information Reporter
-bash
+## Task 5 — System Information Reporter
+
+```bash
 touch system_info.sh      # create file
 chmod +x system_info.sh   # give permission
 vim system_info.sh        # edit file
-bash
+```
+
+```bash
 #!/bin/bash
 set -euo pipefail
 
@@ -191,24 +220,36 @@ main() {
 }
 
 main
+```
 
-Concept: print_header is a reusable helper — every section calls it with a different title ($1) instead of repeating the same three echo lines everywhere. main just calls each report function in order, so the whole script reads top-to-bottom like a table of contents.
+**Concept:** `print_header` is a reusable helper — every section calls it with a different title (`$1`) instead of repeating the same three `echo` lines everywhere. `main` just calls each report function in order, so the whole script reads top-to-bottom like a table of contents.
 
-Breaking down du -xah / 2>/dev/null | sort -rh | head -5
+### Breaking down `du -xah / 2>/dev/null | sort -rh | head -5`
+
+```
 du -xah /
 │  │ │
 │  │ └── human-readable sizes (e.g. 4.0K, 2.1G)
 │  └──── show all files, not just directories
 └─────── disk usage
--x — stay on one filesystem (don't cross into mounted drives)
-2>/dev/null — discard "Permission denied" errors so they don't clutter the output
-sort -rh — sort numerically, treating human-readable sizes correctly (h), largest first (r)
-head -5 — keep only the top 5 results
-Quick Command Reference
-Command	Purpose
-touch file.sh	Create an empty script file
-chmod +x file.sh	Make a script executable
-bash file.sh	Run a script
-local var="value"	Declare a variable scoped to the current function
-set -euo pipefail	Enable strict error handling
-systemctl is-active --quiet <service>	Check if a service is running (via exit code)
+```
+- `-x` — stay on one filesystem (don't cross into mounted drives)
+- `2>/dev/null` — discard "Permission denied" errors so they don't clutter the output
+- `sort -rh` — sort **numerically**, treating human-readable sizes correctly (`h`), largest first (`r`)
+- `head -5` — keep only the top 5 results
+
+---
+
+## Quick Command Reference
+
+| Command | Purpose |
+|---|---|
+| `touch file.sh` | Create an empty script file |
+| `chmod +x file.sh` | Make a script executable |
+| `bash file.sh` | Run a script |
+| `local var="value"` | Declare a variable scoped to the current function |
+| `set -euo pipefail` | Enable strict error handling |
+| `systemctl is-active --quiet <service>` | Check if a service is running (via exit code) |
+
+---
+
