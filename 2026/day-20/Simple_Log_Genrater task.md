@@ -128,7 +128,7 @@ echo
 echo "Report created: $REPORT"
 ```
 
-**One thing worth noticing:** several commands end with `|| true`. Since the script uses `set -e`, any command that fails would normally kill the script — but `grep` "fails" (exit code 1) whenever it finds nothing, which isn't actually an error here. `|| true` tells Bash "if this finds nothing, that's fine, keep going."
+
 
 ## Running it
 
