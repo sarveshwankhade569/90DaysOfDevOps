@@ -157,5 +157,3 @@ git log --oneline --graph --decorate --all
 - **Squash** — turn many small commits into one logical one.
 - **Stash** — save my unfinished work temporarily.
 - **Cherry-pick** — bring this one specific commit here.
-
-And whenever something feels off, `git status` is almost always the right first move — it tells you what Git thinks is happening, and usually what to run next.
