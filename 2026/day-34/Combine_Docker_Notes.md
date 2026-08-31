@@ -1,6 +1,6 @@
-# Docker Notes — Advanced Compose, Multi-Stage Builds & Docker Hub
+# Docker Notes — Day 34 to Day 37
 
-## Real-world Compose: app + database + cache
+## Day 34 – Real-World Multi-Container Apps
 
 A production-like stack usually looks like this — a web app, a database, and a cache, all talking to each other by service name:
 
@@ -105,7 +105,7 @@ This tries to start 3 copies of the `web` service. **If your compose file has `p
 
 ---
 
-## Multi-stage builds — small, clean images
+## Day 35 – Multi-Stage Builds & Docker Hub
 
 ### The problem: single-stage builds are bloated
 
@@ -147,9 +147,7 @@ docker build -t myapp:multistage -f Dockerfile.multistage .
 docker images | grep myapp
 ```
 
----
-
-## Pushing to Docker Hub
+### Pushing to Docker Hub
 
 ```bash
 docker login
@@ -165,7 +163,7 @@ docker pull yourusername/myapp:v1
 
 **`:latest` vs a specific tag:** `latest` is just a regular tag, not automatically "the newest version" — it's whatever was last pushed without a specific tag. In real projects, pull a specific version tag (`v1`, `v2.3.1`) so you always know exactly what you're running; relying on `latest` in production is a common source of "it worked yesterday" bugs.
 
-## Image best practices
+### Image best practices
 
 ```dockerfile
 FROM node:20-alpine        # minimal base image, specific version — not `latest`
@@ -189,7 +187,114 @@ Four habits worth building:
 
 ---
 
-## Quick-fire answers worth knowing cold
+## Day 36 – Dockerizing a Full Application
+
+This is the day it all comes together — taking a real app from zero to a working, shareable Docker setup.
+
+### The shape of a full project
+
+```
+myapp/
+├── app/                  # application source code
+│   └── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
+├── .env
+└── README.md
+```
+
+### The Dockerfile — combining everything learned so far
+
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+RUN addgroup app && adduser -S -G app app
+USER app
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+```
+This uses everything from the last two days: a multi-stage build, a minimal base image, and a non-root user.
+
+### The Compose file — app + database, wired together properly
+
+```yaml
+services:
+  app:
+    build: ./app
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - appnet
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - appnet
+
+networks:
+  appnet:
+
+volumes:
+  dbdata:
+```
+
+Everything here is a concept from the last few days, just applied together: a custom network, a named volume for persistence, `.env` for config, and a healthcheck gating startup order.
+
+### Shipping it
+
+```bash
+docker tag myapp:latest yourusername/myapp:v1
+docker push yourusername/myapp:v1
+```
+
+### The real test: does it work from scratch?
+
+```bash
+docker compose down -v
+docker system prune -a -f
+docker compose up -d
+```
+If it comes up clean using nothing but your `docker-compose.yml`, `.env`, and the pushed image — it's genuinely done. If something breaks here, it usually means a hardcoded local path, a missing environment variable, or an assumption that only held true on your machine. Fix it here, not later.
+
+### README worth including in the project
+
+A short README should cover:
+- What the app does
+- How to run it: `docker compose up -d`
+- Which environment variables are needed (list them, don't need to give values)
+- The Docker Hub link to the pushed image
+
+---
+
+## Day 37 – Revision & Cheat Sheet
+
+### Quick-fire answers worth knowing cold
 
 - **Image vs container** — image is the frozen template; container is a running instance of it.
 - **Data inside a removed container** — gone. Only volumes (or bind mounts) survive.
@@ -200,9 +305,7 @@ Four habits worth building:
 - **`-p 8080:80`** — map port 8080 on the host to port 80 inside the container; visiting the host on 8080 reaches the container's port 80.
 - **Checking Docker's disk usage** — `docker system df`.
 
----
-
-## Docker Cheat Sheet
+### Docker Cheat Sheet
 
 **Containers**
 ```bash
